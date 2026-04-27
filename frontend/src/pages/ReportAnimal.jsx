@@ -475,7 +475,7 @@ body {
               {/* SPECIES */}
               {speciesResult && (
                 <div className="section ai-box">
-                  🐾 <b>Species Detected</b>
+                  🐾 <b>Species Detected:</b>
                   <br />
                   {speciesResult.species.toUpperCase()} <br />
                   Confidence: {(speciesResult.confidence * 100).toFixed(2)}%

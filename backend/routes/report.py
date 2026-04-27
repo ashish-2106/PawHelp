@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 import os
 from werkzeug.utils import secure_filename
+import threading
 
 # AI services
 from services.species_service import detect_species
@@ -9,6 +10,9 @@ from services.first_aid_service import generate_first_aid
 
 # database
 from services.store import save_report
+
+# 🔥 NEW: Notification service
+from services.notification_service import notify_ngos
 
 report_bp = Blueprint("report", __name__)
 
@@ -110,7 +114,7 @@ def report_animal():
 
         # -------- PREPARE DATA --------
         report_data = {
-            "user_id": user_id,   # ✅ FIXED
+            "user_id": user_id,
             "species": top_species,
             "injury_type": injury_type,
             "severity": severity,
@@ -124,6 +128,23 @@ def report_animal():
         print("💾 Saving report to DB...")
         report_id = save_report(report_data)
 
+        # -------- 🔥 SEND SMS ALERT (ASYNC) --------
+        print("📢 Triggering NGO notifications...")
+
+        location_link = f"https://www.google.com/maps?q={lat},{lng}"
+
+        notification_data = {
+            "animal": top_species,
+            "injury": injury_type,
+            "location": location_link
+        }
+
+        # Run in background (non-blocking)
+        threading.Thread(
+            target=notify_ngos,
+            args=(notification_data,)
+        ).start()
+
         # -------- RESPONSE --------
         print("✅ REPORT COMPLETED SUCCESSFULLY\n")
 
@@ -134,6 +155,7 @@ def report_animal():
                 "latitude": lat,
                 "longitude": lng
             },
+            "map_link": location_link,
             "image_path": filepath,
             "species_detections": species_detections,
             "injury_analysis": injury_result,

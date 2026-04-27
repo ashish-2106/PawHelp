@@ -12,25 +12,15 @@ def save_report(report_data):
             raise ValueError("user_id is required")
 
         # Optional safety checks
-        if "species" not in report_data:
-            report_data["species"] = None
+        report_data.setdefault("species", None)
+        report_data.setdefault("injury_type", None)
+        report_data.setdefault("severity", None)
+        report_data.setdefault("latitude", None)
+        report_data.setdefault("longitude", None)
+        report_data.setdefault("image_path", None)
+        report_data.setdefault("status", "PENDING")
 
-        if "injury_type" not in report_data:
-            report_data["injury_type"] = None
-
-        if "severity" not in report_data:
-            report_data["severity"] = None
-
-        if "latitude" not in report_data:
-            report_data["latitude"] = None
-
-        if "longitude" not in report_data:
-            report_data["longitude"] = None
-
-        if "image_path" not in report_data:
-            report_data["image_path"] = None
-
-        # ✅ SQL Query with user_id
+        # ✅ SQL Query
         query = """
         INSERT INTO reports 
         (user_id, species, injury_type, severity, latitude, longitude, image_path, status)
@@ -39,24 +29,21 @@ def save_report(report_data):
         """
 
         values = (
-            int(report_data["user_id"]),  # ✅ ensure integer
+            int(report_data["user_id"]),
             report_data["species"],
             report_data["injury_type"],
             report_data["severity"],
             report_data["latitude"],
             report_data["longitude"],
             report_data["image_path"],
-            report_data.get("status", "PENDING")
+            report_data["status"]
         )
 
-        # 🧠 Debug log (very helpful)
         print("💾 Saving Report:", values)
 
         cursor.execute(query, values)
 
-        # ✅ Get inserted report ID
         report_id = cursor.fetchone()[0]
-
         conn.commit()
 
         print(f"✅ Report saved successfully with ID: {report_id}")
@@ -98,7 +85,6 @@ def get_all_reports():
         cursor.execute(query)
         rows = cursor.fetchall()
 
-        # ✅ Convert to clean JSON format
         reports = []
 
         for row in rows:
@@ -119,6 +105,45 @@ def get_all_reports():
 
     except Exception as e:
         print("❌ ERROR fetching reports:", str(e))
+        return []
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# -------- 🔥 GET ALL NGOS (NEW FUNCTION) --------
+def get_all_ngos():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+        SELECT id, ngo_name, phone, latitude, longitude
+        FROM ngo_profiles
+        WHERE status = 'APPROVED'
+        """
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        ngos = []
+
+        for row in rows:
+            ngos.append({
+                "id": row[0],
+                "name": row[1],        # ngo_name
+                "phone": row[2],
+                "latitude": row[3],
+                "longitude": row[4]
+            })
+
+        print("📢 NGOs fetched:", ngos)
+
+        return ngos
+
+    except Exception as e:
+        print("❌ ERROR fetching NGOs:", str(e))
         return []
 
     finally:
